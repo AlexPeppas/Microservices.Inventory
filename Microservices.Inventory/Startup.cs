@@ -31,7 +31,9 @@ namespace Microservices.Inventory
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMongo()
-                .AddMongoRepository<InventoryItem>("UserInventory");
+                .AddMongoRepository<InventoryItem>("UserInventory")
+                .AddMongoRepository<CatalogItem>("InventoryItems")
+                .AddMassTransitRabbitMQ();
 
             services.AddCustomHttpClient(new HttpClientParameters { baseUrl= "https://localhost:44317",timeoutPolicy=2 });
 
