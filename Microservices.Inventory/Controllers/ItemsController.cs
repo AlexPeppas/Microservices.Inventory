@@ -15,13 +15,14 @@ namespace Microservices.Inventory.Controllers
     [Route("items")]
     public class ItemsController : ControllerBase
     {
-        private readonly IRepository<InventoryItem> _repository;
-        private readonly IHttpCustomClient _httpCustomClient;
+        private readonly IRepository<InventoryItem> _inventoryRepo;
+        private readonly IRepository<CatalogItem> _catalogRepo;
+        
 
-        public ItemsController(IRepository<InventoryItem> repository, IHttpCustomClient httpCustomClient)
+        public ItemsController(IRepository<InventoryItem> inventoryRepo, IRepository<CatalogItem> catalogRepo)
         {
-            _repository = repository;
-            _httpCustomClient = httpCustomClient;
+            _inventoryRepo = inventoryRepo;
+            _catalogRepo = catalogRepo;
         }
 
         [HttpGet(Name ="getUsersInventory")]
@@ -29,10 +30,10 @@ namespace Microservices.Inventory.Controllers
         {
             if (userId == Guid.Empty)
                 return BadRequest(new { Message = "Cannot retrieve items for default user"});
-
             
-            var catalogItems = await _httpCustomClient.GetGenericAsync<CatalogItemDto>("items");
-            var userInventoryItemEntities = (await _repository.GetAllAsync(items => items.UserId == userId)).ToList();
+            var userInventoryItemEntities = (await _inventoryRepo.GetAllAsync(items => items.UserId == userId)).ToList();
+            var itemIds = userInventoryItemEntities.Select(item => item.CatalogItemId)?.ToList();
+            var catalogItems = (await _catalogRepo.GetAllAsync(items=>itemIds.Contains(items.Id))).ToList();
 
             var userInventoryItemDtos = userInventoryItemEntities.Select(inventoryItem =>
             {
@@ -46,20 +47,18 @@ namespace Microservices.Inventory.Controllers
         [HttpPost(Name ="modifyUsersInventory")]
         public async Task<ActionResult> PostAsync (GrantItemDto request)
         {
-     
-            
             var usersInventory = new List<InventoryItem>();
 
             if (request.UserId != Guid.Empty)
             {
-                usersInventory = (await _repository.GetAllAsync(item => item.UserId == request.UserId)).ToList();
+                usersInventory = (await _inventoryRepo.GetAllAsync(item => item.UserId == request.UserId)).ToList();
 
                 if (usersInventory.Select(it => it.CatalogItemId).ToList().Contains(request.CatalogItemId))
                 {
                     //update item
                     int index = usersInventory.IndexOf(usersInventory.Where(it => it.UserId == request.UserId).FirstOrDefault());
                     usersInventory[index].Quantity = request.Quantity;
-                    await _repository.UpdateAsync(usersInventory[index]);
+                    await _inventoryRepo.UpdateAsync(usersInventory[index]);
                 }
                 else
                 {
@@ -71,7 +70,7 @@ namespace Microservices.Inventory.Controllers
                         AcquiredDate = DateTimeOffset.UtcNow
                     };
 
-                    await _repository.InsertAsync(itemToInsert);
+                    await _inventoryRepo.InsertAsync(itemToInsert);
                 }
                 return Ok();
             }
@@ -86,7 +85,7 @@ namespace Microservices.Inventory.Controllers
                     AcquiredDate = DateTimeOffset.UtcNow
                 };
 
-                await _repository.InsertAsync(itemToInsert);
+                await _inventoryRepo.InsertAsync(itemToInsert);
                 return Ok(new { Message = $"New user Id created -> {itemToInsert.UserId}" });
             }
      

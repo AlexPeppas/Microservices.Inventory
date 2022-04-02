@@ -18,16 +18,17 @@ namespace Microservices.Inventory.Consumers
             this.repository = repository;
         }
 
+        //MAYBE retire this logic, We do not want to delete the item from Inventory when it's being deleted from the Auction House so we need to maintain the data and keep receiving Descreption etc. for user's Inventory.
         public async Task Consume(ConsumeContext<DeletedItemDto> context)
         {
-            var rabbitMqMessage = context.Message;
+            /*var rabbitMqMessage = context.Message;
 
             var item = await repository.GetByIdAsync(rabbitMqMessage.Id);
 
             if (item != null)
                 await repository.DeleteAsync(item.Id);
 
-            return;
+            return;*/
         }
     }
 }
