@@ -1,5 +1,6 @@
 using Microservices.Common.Extensions;
 using Microservices.Common.Interfaces;
+using Microservices.Common.Types;
 using Microservices.Inventory.Entities;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -32,7 +33,7 @@ namespace Microservices.Inventory
             services.AddMongo()
                 .AddMongoRepository<InventoryItem>("UserInventory");
 
-            services.AddCustomHttpClient("https://localhost:44317");
+            services.AddCustomHttpClient(new HttpClientParameters { baseUrl= "https://localhost:44317",timeoutPolicy=2 });
 
             services.AddControllers();
             services.AddSwaggerGen(c =>
